@@ -3,13 +3,24 @@
 from __future__ import annotations
 
 from functools import partial, wraps
-from typing import Any, Callable
+from typing import TYPE_CHECKING, Any, Callable
 
-from quacc.settings import change_settings_wrap
+from quacc.settings import change_settings_wrap, nest_results_dir_wrap
+
+if TYPE_CHECKING:
+    from prefect import Flow as PrefectFlow
 
 Job = Callable[..., Any]
 Flow = Callable[..., Any]
 Subflow = Callable[..., Any]
+
+if TYPE_CHECKING:
+    from importlib.util import find_spec
+
+    from quacc.settings import QuaccSettings
+
+    if bool(find_spec("prefect")):
+        from prefect import Task
 
 
 def job(_func: Callable[..., Any] | None = None, **kwargs) -> Job:
@@ -173,18 +184,7 @@ def job(_func: Callable[..., Any] | None = None, **kwargs) -> Job:
 
         return task(_func, namespace=_func.__module__, **kwargs)
     elif settings.WORKFLOW_ENGINE == "prefect":
-        from prefect import task
-
-        if settings.PREFECT_AUTO_SUBMIT:
-
-            @wraps(_func)
-            def wrapper(*f_args, **f_kwargs):
-                decorated = task(_func, **kwargs)
-                return decorated.submit(*f_args, **f_kwargs)
-
-            return wrapper
-        else:
-            return task(_func, **kwargs)
+        return _decorate_prefect_job(_func, kwargs, settings)
     else:
         return _func
 
@@ -347,9 +347,8 @@ def flow(_func: Callable[..., Any] | None = None, **kwargs) -> Flow:
 
         return task(_func, namespace=_func.__module__, **kwargs)
     elif settings.WORKFLOW_ENGINE == "prefect":
-        from prefect import flow as prefect_flow
+        return _decorate_prefect_flow_subflow(_func, kwargs, settings)
 
-        return prefect_flow(_func, validate_parameters=False, **kwargs)
     else:
         return _func
 
@@ -578,15 +577,56 @@ def subflow(_func: Callable[..., Any] | None = None, **kwargs) -> Subflow:
 
         return join_app(wrapped_fn, **kwargs)
     elif settings.WORKFLOW_ENGINE == "prefect":
-        from prefect import flow as prefect_flow
+        return _decorate_prefect_flow_subflow(_func, kwargs, settings)
 
-        return prefect_flow(_func, validate_parameters=False, **kwargs)
     elif settings.WORKFLOW_ENGINE == "redun":
         from redun import task
 
         return task(_func, namespace=_func.__module__, **kwargs)
     else:
         return _func
+
+
+def _decorate_prefect_job(
+    _func: Callable, kwargs: dict[str, Any], settings: QuaccSettings
+) -> Task:
+    from prefect import task
+
+    if settings.PREFECT_AUTO_SUBMIT or settings.NESTED_RESULTS_DIR:
+
+        @wraps(_func)
+        def wrapper(*f_args, **f_kwargs):
+            if settings.NESTED_RESULTS_DIR:
+                decorated = task(nest_results_dir_wrap(_func), **kwargs)
+            else:
+                decorated = task(_func, **kwargs)
+            if settings.PREFECT_AUTO_SUBMIT:
+                return decorated.submit(*f_args, **f_kwargs)
+            else:
+                return decorated(*f_args, **f_kwargs)
+
+        return wrapper
+    else:
+        return task(_func, **kwargs)
+
+
+def _decorate_prefect_flow_subflow(
+    _func: Callable, kwargs: dict[str, Any], settings: QuaccSettings
+) -> PrefectFlow:
+    from prefect import flow as prefect_flow
+
+    if settings.NESTED_RESULTS_DIR:
+
+        @wraps(_func)
+        def wrapper(*f_args, **f_kwargs):
+            decorated = prefect_flow(
+                nest_results_dir_wrap(_func), validate_parameters=False, **kwargs
+            )
+            return decorated(*f_args, **f_kwargs)
+
+        return wrapper
+    else:
+        return prefect_flow(_func, validate_parameters=False, **kwargs)
 
 
 def _get_parsl_wrapped_func(

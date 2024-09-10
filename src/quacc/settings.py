@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import inspect
 import os
 from contextlib import contextmanager
+from datetime import datetime, timezone
 from functools import wraps
 from pathlib import Path
+from random import randint
 from shutil import which
 from typing import TYPE_CHECKING, Literal, Optional, Union
 
@@ -94,6 +97,14 @@ class QuaccSettings(BaseSettings):
             Whether to have a unique directory in RESULTS_DIR for each job.
             Some workflow engines have an option to do this for you already,
             in which case you should set this to False.
+            """
+        ),
+    )
+    NESTED_RESULTS_DIR: bool = Field(
+        True,
+        description=(
+            """
+            Whether to automatically nest the results directories by the calling flow, subflow, etc.
             """
         ),
     )
@@ -588,5 +599,40 @@ def change_settings_wrap(func: Callable, changes: dict[str, Any]) -> Callable:
             return original_func(*args, **kwargs)
 
     wrapper._changed = True
+    wrapper._changes = changes
     wrapper._original_func = original_func
     return wrapper
+
+
+def nest_results_dir_wrap(func: Callable) -> Callable:
+    """
+    Wraps a function with the change_settings context manager using a nested RESULTS_DIR
+
+    Parameters
+    ----------
+    func
+        The function to wrap.
+
+    Returns
+    -------
+    Callable
+        The wrapped function.
+    """
+    from quacc import get_settings
+
+    changes = getattr(func, "_changes", {})
+
+    # Get the settings from the calling function's context
+    results_parent_dir = get_settings().RESULTS_DIR
+    time_now = datetime.now(timezone.utc).strftime("%Y-%m-%d-%H-%M-%S-%f")
+    nested_results_dir = results_parent_dir / Path(
+        f"{inspect.getmodule(func).__name__}.{func.__name__}-{time_now}-{randint(10000, 99999)}"
+    )
+
+    # If someone explcitly set RESULTS_DIR in change_settings already
+    # they probably know what they're doing and really want a specific
+    # folder!
+    if "RESULTS_DIR" not in changes:
+        changes["RESULTS_DIR"] = nested_results_dir
+
+    return change_settings_wrap(func, changes)
