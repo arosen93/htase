@@ -373,7 +373,7 @@ def set_pmg_kpts(
     return user_calc_params
 
 
-class MPtoASEConverter:
+class MPtoASEParams:
     """
     Convert an MP-formatted input set to an ASE-formatted input set.
     """

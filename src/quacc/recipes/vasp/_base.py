@@ -30,7 +30,7 @@ def run_and_summarize(
     preset: str | None = None,
     calc_defaults: dict[str, Any] | None = None,
     calc_swaps: dict[str, Any] | None = None,
-    report_mp_corrections: bool = False,
+    check_mp_compatibility: bool = False,
     additional_fields: dict[str, Any] | None = None,
     copy_files: SourceDirectory | dict[SourceDirectory, Filenames] | None = None,
 ) -> VaspSchema:
@@ -49,8 +49,9 @@ def run_and_summarize(
         Dictionary of custom kwargs for the Vasp calculator. Set a value to
         `None` to remove a pre-existing key entirely. For a list of available
         keys, refer to [quacc.calculators.vasp.vasp.Vasp][].
-    report_mp_corrections
-        Whether to report the Materials Project corrections in the results.
+    check_mp_compatibility
+        Whether to check compatibility with the current version of MP.
+        Requires `pymatgen-io-validation` to do the check.
     additional_fields
         Additional fields to supply to the summarizer.
     copy_files
@@ -67,7 +68,8 @@ def run_and_summarize(
     final_atoms = Runner(atoms, calc, copy_files=copy_files).run_calc()
 
     return VaspSummarize(
-        report_mp_corrections=report_mp_corrections, additional_fields=additional_fields
+        check_mp_compatibility=check_mp_compatibility,
+        additional_fields=additional_fields,
     ).run(final_atoms)
 
 
@@ -78,7 +80,7 @@ def run_and_summarize_opt(
     calc_swaps: dict[str, Any] | None = None,
     opt_defaults: dict[str, Any] | None = None,
     opt_params: OptParams | None = None,
-    report_mp_corrections: bool = False,
+    check_mp_compatibility: bool = False,
     additional_fields: dict[str, Any] | None = None,
     copy_files: SourceDirectory | dict[SourceDirectory, Filenames] | None = None,
 ) -> VaspASEOptSchema:
@@ -101,8 +103,9 @@ def run_and_summarize_opt(
         Default arguments for the ASE optimizer.
     opt_params
         Dictionary of custom kwargs for [quacc.runners.ase.Runner.run_opt][]
-    report_mp_corrections
-        Whether to report the Materials Project corrections in the results.
+    check_mp_compatibility
+        Whether to check compatibility with the current version of MP.
+        Requires `pymatgen-io-validation` to do the check.
     additional_fields
         Additional fields to supply to the summarizer.
     copy_files
@@ -120,7 +123,8 @@ def run_and_summarize_opt(
     dyn = Runner(atoms, calc, copy_files=copy_files).run_opt(**opt_flags)
 
     return VaspSummarize(
-        report_mp_corrections=report_mp_corrections, additional_fields=additional_fields
+        check_mp_compatibility=check_mp_compatibility,
+        additional_fields=additional_fields,
     ).ase_opt(dyn)
 
 
@@ -178,6 +182,7 @@ def run_and_summarize_vib_and_thermo(
 
     calc = Vasp(atoms, preset=preset, **calc_flags)
     vib = Runner(atoms, calc, copy_files=copy_files).run_vib(vib_kwargs=vib_kwargs)
+
     return VibSummarize(vib, additional_fields=additional_fields).vib_and_thermo(
         thermo_method, energy=energy, temperature=temperature, pressure=pressure
     )

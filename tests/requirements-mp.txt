@@ -1,1 +1,2 @@
-atomate2==0.0.18
+atomate2 @ git+https://github.com/esoteric-ephemera/atomate2.git@updated_mp
+pymatgen-io-validation==0.0.3

@@ -611,17 +611,12 @@ if TYPE_CHECKING:
         relax1: VaspSchema
         relax2: VaspSchema
 
-    class MPGGARelaxFlowSchema(VaspSchema):
-        """Type hint associated with the MP GGA relaxation flows."""
+    class MPRelaxFlowSchema(VaspSchema):
+        """Type hint associated with the MP relaxation flows."""
 
-        relax1: VaspSchema
-        relax2: VaspSchema
+        pre_relax: VaspSchema
+        relax: VaspSchema
         static: VaspSchema
-
-    class MPMetaGGARelaxFlowSchema(MPGGARelaxFlowSchema):
-        """Type hint associated with the MP meta-GGA relaxation flows."""
-
-        prerelax: VaspSchema
 
     class QMOFRelaxSchema(VaspSchema):
         """Type hint associated with the QMOF relaxation jobs."""

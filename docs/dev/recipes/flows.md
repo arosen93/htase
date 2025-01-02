@@ -12,7 +12,7 @@ A flow is a Python function decorated by `#!Python @flow` that contains a collec
 
 ### Production Example
 
-A simple, representative flow can be found in [quacc.recipes.vasp.mp.mp_metagga_relax_flow][].
+A simple, representative flow can be found in [quacc.recipes.vasp.mp.mp_relax_flow][].
 
 !!! Note
 

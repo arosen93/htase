@@ -209,7 +209,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Added
 
 - Added a context handler, `quacc.settings.change_settings`, that can be used to modify global settings temporarily
-- Added `quacc.calculators.vasp.params.MPtoASEConverter` to convert between Pymatgen- and Atomate2-style input parameters to ASE-compatabile parameters
+- Added `quacc.calculators.vasp.params.MPtoASEParams` to convert between Pymatgen- and Atomate2-style input parameters to ASE-compatabile parameters
 
 ### Fixed
 
